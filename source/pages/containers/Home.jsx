@@ -1,5 +1,8 @@
 import React, {Component} from 'react';
 import { Link } from 'react-router-dom';
+import { connect } from 'react-redux';
+import {bindActionCreators } from 'redux';
+import PropTypes from 'prop-types';
 
 import Post from '../../posts/containers/Post.jsx';
 import Loading from '../../shared/components/Loading.jsx';
@@ -9,24 +12,29 @@ import styles from './Page.css';
 
 import api from '../../api.js';
 
+import actions from '../../actions.js';
+
 class Home extends Component{
   constructor(props){
     super(props);
 
     this.state = {
-      page :1 ,
-      posts: [],
       loading: true,
     };
 
     this.handleScroll = this.handleScroll.bind(this);
   }
   async componentDidMount(){
-    const posts = await api.posts.getList(this.state.page);
+    await this.props.actions.postsNextPage();
+    // const posts = await api.posts.getList(this.props.page);
+
+    // this.props.dispatch(
+    //   actions.setPost(posts),
+    // );
+
+    // this.props.actions.setPost(posts);
 
     this.setState({
-      posts:posts,
-      page: this.state.page + 1,
       loading: false,
     });
     // se agrega el evento scroll pero luego de que se desmonte el component hay que quitarlo con componentWillUnmount
@@ -51,11 +59,15 @@ handleScroll(event){
 
   this.setState({loading: true}, async () => {
     try{
-      const posts = await api.posts.getList(this.state.page);
+      await this.props.actions.postsNextPage();
+      // const posts = await api.posts.getList(this.props.page);
       //concat concatena los dos array, el que ya estaba mas los nuevos
+
+      // this.props.dispatch(
+      //   actions.setPost(posts),
+      // );
+      // this.props.actions.setPost(posts);
       this.setState({
-        posts: this.state.posts.concat(posts),
-        page : this.state.page + 1,
         loading: false,
       });
     }catch(error){
@@ -73,7 +85,7 @@ handleScroll(event){
         {this.state.loading && (
           <Loading />
         )}
-        {this.state.posts
+        {this.props.posts
           .map(post => <Post key={post.id} {...post}/>)
         }
       </section>
@@ -81,4 +93,26 @@ handleScroll(event){
   }
 }
 
-export default Home;
+
+function mapStateToProps(state){
+  return {
+    posts: state.posts.entities,
+    page: state.posts.page,
+  };
+}
+
+
+// function mapStateToProps(state){
+//   return {
+//     posts: state.get('posts').get('entities'),
+//     page: state.get('posts').get('page'),
+//   };
+// }
+
+function mapDispatchToProps(dispatch){
+  return{
+    actions: bindActionCreators(actions, dispatch)
+  };
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Home);

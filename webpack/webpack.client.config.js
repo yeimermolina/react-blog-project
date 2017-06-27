@@ -1,18 +1,22 @@
+const webpack = require('webpack');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 const path = require('path');
 
-module.exports = {
+const config = {
   entry: './source/client.js',
   output: {
     filename: 'app.js',
     path: path.resolve(__dirname, '../build/statics'),
+    publicPath: process.env.NODE_ENV === 'production'
+      ? 'https://platzi-react-sfs.now.sh'
+      : 'http://localhost:3001/',
   },
   module: {
     loaders: [
       {
         test: /\.json$/,
-        loader: 'json',
+        loader: 'json-loader',
       },
       {
         test: /\.jsx?$/,
@@ -21,6 +25,15 @@ module.exports = {
         query: {
           presets: ['es2016','es2017', 'react'],
           plugins: ['transform-es2015-modules-commonjs'],
+          env: {
+            production: {
+              plugins: ['transform-regenerator', 'transform-runtime'],
+              presets: ['es2015'],
+            },
+            development: {
+              plugins: ['transform-es2015-modules-commonjs'],
+            },
+          }
         }
       },
       {
@@ -33,7 +46,34 @@ module.exports = {
     ]
   },
   target: 'web',
+  resolve: {
+    extensions: [ '.js', '.jsx', '.css', '.json'],
+  },
   plugins:[
+    new webpack.DefinePlugin({
+      'process.env': {
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'development'),
+      },
+    }),
+    new webpack.optimize.OccurrenceOrderPlugin(true),
     new ExtractTextPlugin({ filename: '../statics/styles.css' }),
   ]
 }
+
+
+if (process.env.NODE_ENV === 'production') {
+  config.plugins.push(
+    new webpack.optimize.DedupePlugin(),
+    new webpack.optimize.UglifyJsPlugin({
+      compress: {
+        warnings: false,
+      },
+      mangle: {
+        except: ['$super', '$', 'exports', 'require'],
+      },
+    })
+  );
+}
+
+
+module.exports = config;
